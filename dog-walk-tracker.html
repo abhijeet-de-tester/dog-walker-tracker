@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dog Walk Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .month-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .month-nav button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .month-nav button:hover {
+            background: #764ba2;
+        }
+
+        .month-nav h2 {
+            font-size: 20px;
+            color: #333;
+        }
+
+        .calendar {
+            padding: 20px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            margin-top: 15px;
+        }
+
+        .day-header {
+            text-align: center;
+            font-weight: bold;
+            color: #667eea;
+            padding: 10px 5px;
+            font-size: 12px;
+        }
+
+        .day-cell {
+            aspect-ratio: 1;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+            position: relative;
+        }
+
+        .day-cell:hover {
+            border-color: #667eea;
+            transform: scale(1.05);
+        }
+
+        .day-cell.other-month {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .day-cell.today {
+            border-color: #ffc107;
+            background: #fff9e6;
+        }
+
+        .day-number {
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 2px;
+        }
+
+        .walk-indicators {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .walk-status {
+            display: flex;
+            gap: 2px;
+        }
+
+        .walk-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #e9ecef;
+        }
+
+        .walk-dot.walked {
+            background: #28a745;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            font-size: 22px;
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+        }
+
+        .walk-option {
+            margin-bottom: 20px;
+        }
+
+        .walk-option h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+
+        .walk-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .walk-btn {
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .walk-btn:hover {
+            border-color: #667eea;
+        }
+
+        .walk-btn.active {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+
+        .modal-close {
+            margin-top: 20px;
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .modal-close:hover {
+            background: #764ba2;
+        }
+
+        .totals {
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 2px solid #e9ecef;
+        }
+
+        .totals h3 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .total-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .total-item span:first-child {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .total-item span:last-child {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .legend {
+            padding: 15px 20px;
+            background: #fff9e6;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🐕 Dog Walk Tracker</h1>
+            <p>Angel & Hobbs</p>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-dot" style="background: #28a745;"></div>
+                <span>Walked</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="background: #e9ecef;"></div>
+                <span>Not Walked</span>
+            </div>
+        </div>
+
+        <div class="month-nav">
+            <button id="prevMonth">← Previous</button>
+            <h2 id="currentMonth"></h2>
+            <button id="nextMonth">Next →</button>
+        </div>
+
+        <div class="calendar">
+            <div class="calendar-grid" id="calendarGrid"></div>
+        </div>
+
+        <div class="totals">
+            <h3>Monthly Totals</h3>
+            <div class="total-item">
+                <span>Angel - Morning</span>
+                <span id="angelMorningTotal">0</span>
+            </div>
+            <div class="total-item">
+                <span>Angel - Evening</span>
+                <span id="angelEveningTotal">0</span>
+            </div>
+            <div class="total-item">
+                <span>Hobbs - Morning</span>
+                <span id="hobbsMorningTotal">0</span>
+            </div>
+            <div class="total-item">
+                <span>Hobbs - Evening</span>
+                <span id="hobbsEveningTotal">0</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="walkModal">
+        <div class="modal-content">
+            <h2 class="modal-header" id="modalDate"></h2>
+            
+            <div class="walk-option">
+                <h3>Angel</h3>
+                <div class="walk-buttons">
+                    <button class="walk-btn" data-dog="angel" data-time="morning">Morning</button>
+                    <button class="walk-btn" data-dog="angel" data-time="evening">Evening</button>
+                </div>
+            </div>
+
+            <div class="walk-option">
+                <h3>Hobbs</h3>
+                <div class="walk-buttons">
+                    <button class="walk-btn" data-dog="hobbs" data-time="morning">Morning</button>
+                    <button class="walk-btn" data-dog="hobbs" data-time="evening">Evening</button>
+                </div>
+            </div>
+
+            <button class="modal-close" id="closeModal">Close</button>
+        </div>
+    </div>
+
+    <script>
+        let currentDate = new Date();
+        let selectedDate = null;
+        let walkData = {};
+
+        // Load data from localStorage
+        function loadData() {
+            const saved = localStorage.getItem('dogWalkData');
+            if (saved) {
+                walkData = JSON.parse(saved);
+            }
+        }
+
+        // Save data to localStorage
+        function saveData() {
+            localStorage.setItem('dogWalkData', JSON.stringify(walkData));
+        }
+
+        function getDateKey(date) {
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            // Update month display
+            document.getElementById('currentMonth').textContent = 
+                new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startDay = firstDay.getDay();
+            const daysInMonth = lastDay.getDate();
+
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
+
+            // Day headers
+            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dayHeaders.forEach(day => {
+                const header = document.createElement('div');
+                header.className = 'day-header';
+                header.textContent = day;
+                grid.appendChild(header);
+            });
+
+            // Previous month days
+            const prevMonthDays = new Date(year, month, 0).getDate();
+            for (let i = startDay - 1; i >= 0; i--) {
+                const cell = createDayCell(prevMonthDays - i, true);
+                grid.appendChild(cell);
+            }
+
+            // Current month days
+            const today = new Date();
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                const isToday = date.toDateString() === today.toDateString();
+                const cell = createDayCell(day, false, date, isToday);
+                grid.appendChild(cell);
+            }
+
+            // Next month days
+            const remainingCells = 42 - (startDay + daysInMonth);
+            for (let day = 1; day <= remainingCells; day++) {
+                const cell = createDayCell(day, true);
+                grid.appendChild(cell);
+            }
+
+            updateTotals();
+        }
+
+        function createDayCell(day, isOtherMonth, date = null, isToday = false) {
+            const cell = document.createElement('div');
+            cell.className = 'day-cell';
+            
+            if (isOtherMonth) {
+                cell.className += ' other-month';
+            }
+            
+            if (isToday) {
+                cell.className += ' today';
+            }
+
+            const dayNumber = document.createElement('div');
+            dayNumber.className = 'day-number';
+            dayNumber.textContent = day;
+            cell.appendChild(dayNumber);
+
+            if (date) {
+                const dateKey = getDateKey(date);
+                const walks = walkData[dateKey] || {};
+
+                const indicators = document.createElement('div');
+                indicators.className = 'walk-indicators';
+
+                // Angel indicator
+                const angelRow = document.createElement('div');
+                angelRow.className = 'walk-status';
+                angelRow.innerHTML = `
+                    <div class="walk-dot ${walks.angelMorning ? 'walked' : ''}"></div>
+                    <div class="walk-dot ${walks.angelEvening ? 'walked' : ''}"></div>
+                `;
+                indicators.appendChild(angelRow);
+
+                // Hobbs indicator
+                const hobbsRow = document.createElement('div');
+                hobbsRow.className = 'walk-status';
+                hobbsRow.innerHTML = `
+                    <div class="walk-dot ${walks.hobbsMorning ? 'walked' : ''}"></div>
+                    <div class="walk-dot ${walks.hobbsEvening ? 'walked' : ''}"></div>
+                `;
+                indicators.appendChild(hobbsRow);
+
+                cell.appendChild(indicators);
+
+                cell.addEventListener('click', () => openModal(date));
+            }
+
+            return cell;
+        }
+
+        function openModal(date) {
+            selectedDate = date;
+            const dateKey = getDateKey(date);
+            const walks = walkData[dateKey] || {};
+
+            document.getElementById('modalDate').textContent = 
+                date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+            // Update button states
+            document.querySelectorAll('.walk-btn').forEach(btn => {
+                const dog = btn.dataset.dog;
+                const time = btn.dataset.time;
+                const key = `${dog}${time.charAt(0).toUpperCase() + time.slice(1)}`;
+                
+                if (walks[key]) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            document.getElementById('walkModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('walkModal').classList.remove('active');
+            selectedDate = null;
+        }
+
+        function toggleWalk(dog, time) {
+            if (!selectedDate) return;
+
+            const dateKey = getDateKey(selectedDate);
+            if (!walkData[dateKey]) {
+                walkData[dateKey] = {};
+            }
+
+            const key = `${dog}${time.charAt(0).toUpperCase() + time.slice(1)}`;
+            walkData[dateKey][key] = !walkData[dateKey][key];
+
+            saveData();
+            renderCalendar();
+
+            // Update button state
+            const btn = document.querySelector(`[data-dog="${dog}"][data-time="${time}"]`);
+            btn.classList.toggle('active');
+        }
+
+        function updateTotals() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            let totals = {
+                angelMorning: 0,
+                angelEvening: 0,
+                hobbsMorning: 0,
+                hobbsEvening: 0
+            };
+
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                const dateKey = getDateKey(date);
+                const walks = walkData[dateKey] || {};
+
+                if (walks.angelMorning) totals.angelMorning++;
+                if (walks.angelEvening) totals.angelEvening++;
+                if (walks.hobbsMorning) totals.hobbsMorning++;
+                if (walks.hobbsEvening) totals.hobbsEvening++;
+            }
+
+            document.getElementById('angelMorningTotal').textContent = totals.angelMorning;
+            document.getElementById('angelEveningTotal').textContent = totals.angelEvening;
+            document.getElementById('hobbsMorningTotal').textContent = totals.hobbsMorning;
+            document.getElementById('hobbsEveningTotal').textContent = totals.hobbsEvening;
+        }
+
+        // Event listeners
+        document.getElementById('prevMonth').addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        });
+
+        document.getElementById('nextMonth').addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        });
+
+        document.getElementById('closeModal').addEventListener('click', closeModal);
+
+        document.getElementById('walkModal').addEventListener('click', (e) => {
+            if (e.target.id === 'walkModal') {
+                closeModal();
+            }
+        });
+
+        document.querySelectorAll('.walk-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                toggleWalk(btn.dataset.dog, btn.dataset.time);
+            });
+        });
+
+        // Initialize
+        loadData();
+        renderCalendar();
+    </script>
+</body>
+</html>
