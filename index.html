@@ -15,7 +15,13 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding: 10px;
+        }
+        
+        @media (min-width: 500px) {
+            body {
+                padding: 20px;
+            }
         }
 
         .container {
@@ -25,6 +31,12 @@
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             overflow: hidden;
+        }
+        
+        @media (max-width: 499px) {
+            .container {
+                border-radius: 0;
+            }
         }
 
         .header {
@@ -37,6 +49,31 @@
         .header h1 {
             font-size: 28px;
             margin-bottom: 10px;
+        }
+
+        .backup-buttons {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .backup-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .backup-btn:hover {
+            background: white;
+            color: #667eea;
         }
 
         .month-nav {
@@ -69,14 +106,23 @@
         }
 
         .calendar {
-            padding: 20px;
+            padding: 10px;
         }
 
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            gap: 5px;
+            gap: 3px;
             margin-top: 15px;
+        }
+        
+        @media (min-width: 500px) {
+            .calendar {
+                padding: 20px;
+            }
+            .calendar-grid {
+                gap: 5px;
+            }
         }
 
         .day-header {
@@ -91,11 +137,17 @@
             aspect-ratio: 1;
             border: 2px solid #e9ecef;
             border-radius: 10px;
-            padding: 5px;
+            padding: 3px;
             cursor: pointer;
             transition: all 0.3s;
             background: white;
             position: relative;
+        }
+        
+        @media (min-width: 500px) {
+            .day-cell {
+                padding: 5px;
+            }
         }
 
         .day-cell:hover {
@@ -281,6 +333,85 @@
             height: 10px;
             border-radius: 50%;
         }
+
+        .multi-select-bar {
+            padding: 15px 20px;
+            background: #e3f2fd;
+            border-bottom: 2px solid #90caf9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .multi-select-toggle {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-weight: 500;
+        }
+
+        .multi-select-toggle:hover {
+            background: #764ba2;
+        }
+
+        .multi-select-toggle.active {
+            background: #2196f3;
+        }
+
+        .multi-select-info {
+            font-size: 14px;
+            color: #1976d2;
+            font-weight: 500;
+        }
+
+        .multi-select-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .multi-select-btn {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-weight: 500;
+        }
+
+        .multi-select-btn:hover {
+            background: #45a049;
+        }
+
+        .multi-select-btn.cancel {
+            background: #f44336;
+        }
+
+        .multi-select-btn.cancel:hover {
+            background: #da190b;
+        }
+
+        .day-cell.selected {
+            border-color: #2196f3;
+            background: #e3f2fd;
+            border-width: 3px;
+        }
+
+        .day-cell.multi-select-mode {
+            cursor: pointer;
+        }
+
+        .day-cell.multi-select-mode:hover {
+            border-color: #2196f3;
+        }
     </style>
 </head>
 <body>
@@ -288,6 +419,10 @@
         <div class="header">
             <h1>🐕 Dog Walk Tracker</h1>
             <p>Angel & Hobbs</p>
+            <div class="backup-buttons">
+                <button id="backupBtn" class="backup-btn">☁️ Backup to Drive</button>
+                <button id="restoreBtn" class="backup-btn">📥 Restore from Drive</button>
+            </div>
         </div>
 
         <div class="legend">
@@ -298,6 +433,17 @@
             <div class="legend-item">
                 <div class="legend-dot" style="background: #e9ecef;"></div>
                 <span>Not Walked</span>
+            </div>
+        </div>
+
+        <div class="multi-select-bar">
+            <button class="multi-select-toggle" id="multiSelectToggle">📅 Select Multiple Days</button>
+            <div class="multi-select-info" id="multiSelectInfo" style="display: none;">
+                <span id="selectedCount">0</span> days selected
+            </div>
+            <div class="multi-select-actions" id="multiSelectActions" style="display: none;">
+                <button class="multi-select-btn" id="applyToSelected">Apply Walks</button>
+                <button class="multi-select-btn cancel" id="cancelMultiSelect">Cancel</button>
             </div>
         </div>
 
@@ -356,10 +502,163 @@
         </div>
     </div>
 
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script>
         let currentDate = new Date();
         let selectedDate = null;
         let walkData = {};
+        let accessToken = null;
+        
+        // Multi-select mode variables
+        let multiSelectMode = false;
+        let selectedDates = new Set();
+
+        // Google Drive API configuration
+        const CLIENT_ID = 'YOUR_CLIENT_ID'; // You'll need to set this up
+        const API_KEY = 'YOUR_API_KEY'; // You'll need to set this up
+        const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+        const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
+        const FILE_NAME = 'dog-walk-data.json';
+
+        // Initialize Google API
+        function initializeGoogleDrive() {
+            gapi.load('client', async () => {
+                await gapi.client.init({
+                    apiKey: API_KEY,
+                    discoveryDocs: [DISCOVERY_DOC],
+                });
+            });
+        }
+
+        // Google Sign In
+        function handleAuthClick() {
+            const client = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPES,
+                callback: (response) => {
+                    accessToken = response.access_token;
+                    uploadToDrive();
+                },
+            });
+            client.requestAccessToken();
+        }
+
+        // Backup to Google Drive
+        async function uploadToDrive() {
+            if (!accessToken) {
+                handleAuthClick();
+                return;
+            }
+
+            try {
+                const dataToBackup = {
+                    walkData: walkData,
+                    lastBackup: new Date().toISOString()
+                };
+
+                // Search for existing file
+                const searchResponse = await fetch(
+                    `https://www.googleapis.com/drive/v3/files?q=name='${FILE_NAME}'`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`
+                        }
+                    }
+                );
+                const searchData = await searchResponse.json();
+
+                const metadata = {
+                    name: FILE_NAME,
+                    mimeType: 'application/json'
+                };
+
+                const form = new FormData();
+                form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+                form.append('file', new Blob([JSON.stringify(dataToBackup)], { type: 'application/json' }));
+
+                let uploadUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+                let method = 'POST';
+
+                // If file exists, update it
+                if (searchData.files && searchData.files.length > 0) {
+                    uploadUrl = `https://www.googleapis.com/upload/drive/v3/files/${searchData.files[0].id}?uploadType=multipart`;
+                    method = 'PATCH';
+                }
+
+                const uploadResponse = await fetch(uploadUrl, {
+                    method: method,
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    body: form
+                });
+
+                if (uploadResponse.ok) {
+                    alert('✅ Backup successful! Your data is saved to Google Drive.');
+                } else {
+                    throw new Error('Upload failed');
+                }
+            } catch (error) {
+                console.error('Backup error:', error);
+                alert('❌ Backup failed. Please try again.');
+            }
+        }
+
+        // Restore from Google Drive
+        async function restoreFromDrive() {
+            const client = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPES,
+                callback: async (response) => {
+                    accessToken = response.access_token;
+                    await downloadFromDrive();
+                },
+            });
+            client.requestAccessToken();
+        }
+
+        async function downloadFromDrive() {
+            try {
+                // Search for the file
+                const searchResponse = await fetch(
+                    `https://www.googleapis.com/drive/v3/files?q=name='${FILE_NAME}'`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`
+                        }
+                    }
+                );
+                const searchData = await searchResponse.json();
+
+                if (!searchData.files || searchData.files.length === 0) {
+                    alert('⚠️ No backup found in Google Drive.');
+                    return;
+                }
+
+                // Download the file
+                const fileId = searchData.files[0].id;
+                const downloadResponse = await fetch(
+                    `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`
+                        }
+                    }
+                );
+
+                const backupData = await downloadResponse.json();
+                
+                if (confirm('⚠️ This will replace your current data. Continue?')) {
+                    walkData = backupData.walkData || {};
+                    saveData();
+                    renderCalendar();
+                    alert('✅ Data restored successfully!');
+                }
+            } catch (error) {
+                console.error('Restore error:', error);
+                alert('❌ Restore failed. Please try again.');
+            }
+        }
 
         // Load data from localStorage
         function loadData() {
@@ -473,7 +772,22 @@
 
                 cell.appendChild(indicators);
 
-                cell.addEventListener('click', () => openModal(date));
+                // Check if this date is selected in multi-select mode
+                if (selectedDates.has(dateKey)) {
+                    cell.classList.add('selected');
+                }
+
+                if (multiSelectMode) {
+                    cell.classList.add('multi-select-mode');
+                }
+
+                cell.addEventListener('click', () => {
+                    if (multiSelectMode) {
+                        toggleDateSelection(date, cell);
+                    } else {
+                        openModal(date);
+                    }
+                });
             }
 
             return cell;
@@ -509,22 +823,26 @@
         }
 
         function toggleWalk(dog, time) {
-            if (!selectedDate) return;
+            if (multiSelectMode && selectedDates.size > 0) {
+                // Multi-select mode: apply to all selected dates
+                applyWalkToMultipleDates(dog, time);
+            } else if (selectedDate) {
+                // Single date mode: apply to just the selected date
+                const dateKey = getDateKey(selectedDate);
+                if (!walkData[dateKey]) {
+                    walkData[dateKey] = {};
+                }
 
-            const dateKey = getDateKey(selectedDate);
-            if (!walkData[dateKey]) {
-                walkData[dateKey] = {};
+                const key = `${dog}${time.charAt(0).toUpperCase() + time.slice(1)}`;
+                walkData[dateKey][key] = !walkData[dateKey][key];
+
+                saveData();
+                renderCalendar();
+
+                // Update button state
+                const btn = document.querySelector(`[data-dog="${dog}"][data-time="${time}"]`);
+                btn.classList.toggle('active');
             }
-
-            const key = `${dog}${time.charAt(0).toUpperCase() + time.slice(1)}`;
-            walkData[dateKey][key] = !walkData[dateKey][key];
-
-            saveData();
-            renderCalendar();
-
-            // Update button state
-            const btn = document.querySelector(`[data-dog="${dog}"][data-time="${time}"]`);
-            btn.classList.toggle('active');
         }
 
         function updateTotals() {
@@ -557,6 +875,109 @@
             document.getElementById('hobbsEveningTotal').textContent = totals.hobbsEvening;
         }
 
+        // Multi-select functions
+        function toggleMultiSelectMode() {
+            multiSelectMode = !multiSelectMode;
+            const toggleBtn = document.getElementById('multiSelectToggle');
+            const info = document.getElementById('multiSelectInfo');
+            const actions = document.getElementById('multiSelectActions');
+
+            if (multiSelectMode) {
+                toggleBtn.classList.add('active');
+                toggleBtn.textContent = '✓ Multi-Select Active';
+                info.style.display = 'block';
+                actions.style.display = 'flex';
+                selectedDates.clear();
+                updateSelectedCount();
+            } else {
+                toggleBtn.classList.remove('active');
+                toggleBtn.textContent = '📅 Select Multiple Days';
+                info.style.display = 'none';
+                actions.style.display = 'none';
+                selectedDates.clear();
+            }
+            
+            renderCalendar();
+        }
+
+        function toggleDateSelection(date, cell) {
+            const dateKey = getDateKey(date);
+            
+            if (selectedDates.has(dateKey)) {
+                selectedDates.delete(dateKey);
+                cell.classList.remove('selected');
+            } else {
+                selectedDates.add(dateKey);
+                cell.classList.add('selected');
+            }
+            
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount() {
+            document.getElementById('selectedCount').textContent = selectedDates.size;
+        }
+
+        function applyWalksToSelected() {
+            if (selectedDates.size === 0) {
+                alert('Please select at least one day first!');
+                return;
+            }
+
+            // Convert selected dates to a temporary array for the modal
+            const datesArray = Array.from(selectedDates);
+            const firstDateKey = datesArray[0];
+            const [year, month, day] = firstDateKey.split('-');
+            selectedDate = new Date(year, month - 1, day);
+
+            // Open modal with indication it's for multiple days
+            const dateCount = selectedDates.size;
+            document.getElementById('modalDate').textContent = 
+                `Apply walks to ${dateCount} selected day${dateCount > 1 ? 's' : ''}`;
+
+            // Clear all button states
+            document.querySelectorAll('.walk-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            document.getElementById('walkModal').classList.add('active');
+        }
+
+        function applyWalkToMultipleDates(dog, time) {
+            const key = `${dog}${time.charAt(0).toUpperCase() + time.slice(1)}`;
+            
+            // Toggle the button state
+            const btn = document.querySelector(`[data-dog="${dog}"][data-time="${time}"]`);
+            const isActive = btn.classList.toggle('active');
+            
+            // Apply to all selected dates
+            selectedDates.forEach(dateKey => {
+                if (!walkData[dateKey]) {
+                    walkData[dateKey] = {};
+                }
+                walkData[dateKey][key] = isActive;
+            });
+            
+            saveData();
+            renderCalendar();
+        }
+
+        function cancelMultiSelect() {
+            multiSelectMode = false;
+            selectedDates.clear();
+            
+            const toggleBtn = document.getElementById('multiSelectToggle');
+            const info = document.getElementById('multiSelectInfo');
+            const actions = document.getElementById('multiSelectActions');
+            
+            toggleBtn.classList.remove('active');
+            toggleBtn.textContent = '📅 Select Multiple Days';
+            info.style.display = 'none';
+            actions.style.display = 'none';
+            
+            renderCalendar();
+        }
+
         // Event listeners
         document.getElementById('prevMonth').addEventListener('click', () => {
             currentDate.setMonth(currentDate.getMonth() - 1);
@@ -581,6 +1002,20 @@
                 toggleWalk(btn.dataset.dog, btn.dataset.time);
             });
         });
+
+        // Backup/Restore buttons
+        document.getElementById('backupBtn').addEventListener('click', () => {
+            handleAuthClick();
+        });
+
+        document.getElementById('restoreBtn').addEventListener('click', () => {
+            restoreFromDrive();
+        });
+
+        // Multi-select buttons
+        document.getElementById('multiSelectToggle').addEventListener('click', toggleMultiSelectMode);
+        document.getElementById('applyToSelected').addEventListener('click', applyWalksToSelected);
+        document.getElementById('cancelMultiSelect').addEventListener('click', cancelMultiSelect);
 
         // Initialize
         loadData();
